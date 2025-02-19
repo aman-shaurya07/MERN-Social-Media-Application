@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
 }
 
 datasource db {
@@ -8,18 +9,154 @@ datasource db {
 }
 
 model User {
-  id        String @id @default(auto()) @map("_id")
-  username  String @unique
-  email     String @unique
-  password  String
-  posts     Post[]
+  id                     String          @id @default(auto()) @map("_id") @db.ObjectId
+  username               String          @unique
+  email                  String          @unique
+  password               String
+  avatar                 String?
+  cover                  String?
+  name                   String?
+  surname                String?
+  description            String?
+  city                   String?
+  school                 String?
+  work                   String?
+  website                String?
+  createdAt              DateTime        @default(now())
+  posts                  Post[]
+  comments               Comment[]
+  likes                  Like[]
+  followers              Follower[]      @relation("UserFollowers")
+  followings             Follower[]      @relation("UserFollowings")
+  followRequestsSent     FollowRequest[] @relation("FollowRequestsSent")
+  followRequestsReceived FollowRequest[] @relation("FollowRequestsReceived")
+  blocks                 Block[]         @relation("BlocksSent")
+  blockedBy              Block[]         @relation("BlocksReceived")
+  stories                Story[]
+  bookmarks              Bookmark[]
+  sentNotifications      Notification[]  @relation("SentNotifications")
+  receivedNotifications  Notification[]  @relation("ReceivedNotifications")
+  chats1                 Chat[]          @relation("User1Chats")
+  chats2                 Chat[]          @relation("User2Chats")
+  messages               Message[]
 }
 
+
+
 model Post {
-  id        String @id @default(auto()) @map("_id")
-  title     String
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  desc      String
+  img       String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  comments  Comment[]
+  likes     Like[]
+  bookmarks Bookmark[]
+}
+
+model Comment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  desc      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String
+  userId    String
+  likes     Like[]
+}
+
+model Like {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  postId    String?
+  commentId String?
+}
+
+model Follower {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt   DateTime @default(now())
+  follower    User     @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+  followerId  String
+  following   User     @relation("UserFollowings", fields: [followingId], references: [id], onDelete: Cascade)
+  followingId String
+}
+
+model FollowRequest {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt  DateTime @default(now())
+  sender     User     @relation("FollowRequestsSent", fields: [senderId], references: [id], onDelete: Cascade)
+  senderId   String
+  receiver   User     @relation("FollowRequestsReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+  receiverId String
+}
+
+model Block {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+  blocker   User     @relation("BlocksSent", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockerId String
+  blocked   User     @relation("BlocksReceived", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+}
+
+model Story {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  img       String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+}
+
+model Bookmark {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  postId    String
+}
+
+model Notification {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  title      String
+  message    String
+  senderId   String
+  sender     User     @relation("SentNotifications", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User     @relation("ReceivedNotifications", fields: [receiverId], references: [id])
+  createdAt  DateTime @default(now())
+  unread     Boolean
+}
+
+model Chat {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  user1Id   String
+  user2Id   String
+  user1     User      @relation("User1Chats", fields: [user1Id], references: [id], onDelete:Cascade)
+  user2     User      @relation("User2Chats", fields: [user2Id], references: [id], onDelete:Cascade)
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  lastMessage String?
+  @@unique([user1Id, user2Id])
+}
+
+model Message {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete:Cascade)
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id], onDelete:Cascade)
   content   String
-  imageUrl  String?
-  author    User @relation(fields: [authorId], references: [id])
-  authorId  String
+  image     String?
+  createdAt DateTime @default(now())
 }
